@@ -10,18 +10,14 @@ FIXNUM_MAX = (2**(0.size * 8 -2) -1)
 options = {:merge => "", :checkout => "", :quash => false}
 
 OptionParser.new do|opts|
-	opts.banner = "Usage: years.rb [options]"
+	opts.banner = "Usage: git_commit_helper [options]"
 	
-	opts.on('-m', '--merge <branch>', 'Merge to branch') do |branch|
-		options[:merge] = branch || 'dev';
+	opts.on('-m', '--merge [<branch>]', 'Merge to branch') do |branch|
+		options[:merge] = branch || "dev";
 	end
 
-	opts.on('-c', '--checkout <name>', 'Checkout to new branch') do |branch|
+	opts.on('-c', '--checkout [<name>]', 'Checkout to new branch') do |branch|
 		options[:checkout] = branch;
-	end
-	
-	opts.on('-s', '--squash', 'Squash all files into same commit') do
-		options[:squash] = true;
 	end
 
 	opts.on('-h', '--help', 'Displays Help') do
@@ -29,6 +25,16 @@ OptionParser.new do|opts|
 		exit
 	end
 end.parse!
+
+# Add prompt for checkout branch name if not given as command line argument
+while (!options[:checkout]) do
+  puts "Insert checkout branch name"
+  options[:checkout] = gets.chomp
+  
+  if (options[:checkout] == "")
+    options[:checkout] = nil
+  end
+end
 
 # Retrieve the modified files
 value = `git status`
@@ -88,6 +94,11 @@ for element in array do
   counter += 1
 end
 
+# If checkout flag is selected, first checkout
+if (options[:checkout] != "")
+  system "git checkout -b " + options[:checkout] + " > /dev/null"
+end
+
 # Add all tracked elements to the added elements
 for element in parsedT do 
   parsedA << element
@@ -97,8 +108,6 @@ end
 for element in parsedU do 
   parsedA << ["added", element]
 end
-
-p parsedA
 
 for element in parsedA do
   file = element[1].split(' ')[0]
@@ -112,6 +121,22 @@ for element in parsedA do
   end
 end
 
+# If merge flag is selected, merge at the end of the procedure
+if (options[:merge] != "")
+
+  # Determine the current branch name
+  name = `git branch`
+  for element in name.split("\n") do
+    br = element.split("*")
+    if (br.length > 1)
+      branch = br[1].split(" ")[0]
+      break
+    end
+  end
+  
+  system "git checkout " + options[:merge] + " > /dev/null"
+  system "git merge " + branch + " --no-ff > /dev/null"
+end
 
 
 
