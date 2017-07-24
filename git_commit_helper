@@ -1,0 +1,128 @@
+#!/usr/bin/ruby
+
+#
+# git auto-committer with standard commit convention
+#
+
+# Courtesy of:
+# https://stackoverflow.com/questions/535721/ruby-max-integer
+FIXNUM_MAX = (2**(0.size * 8 -2) -1)
+
+# Retrieve the modified files
+value = `git status`
+
+# Magical format parsing
+array = value.split(/[\t\n]/)
+
+counter = 0
+baseCounter = FIXNUM_MAX
+tracked = true
+added = true
+
+# Tracked files
+parsedT ||= []
+
+# Added files
+parsedA ||= []
+
+# Untracked files
+parsedU ||= []
+
+# Return a list of tracked files and untracked files
+for element in array do
+  # Skip the initial extra fluff added by git
+  if (element == "Untracked files:")
+    tracked = false
+    baseCounter = counter + 2
+  end
+  
+  if (element == "Changes to be committed:")
+    baseCounter = counter + 2
+    added = true
+  end
+  
+  if (element == "Changes not staged for commit:")
+    baseCounter = counter + 3
+    added = false
+  end
+  
+  if (counter >= baseCounter)
+    if (tracked)
+      e = element.split(':')
+      if (e != [])
+        if (!added)
+          parsedT << e
+        else
+          parsedA << e
+        end
+      end
+    else
+      e = element.split(' ')
+      if (e.length <= 2 && e[0] != nil)
+        parsedU << e[0]
+      end
+    end
+  end
+  counter += 1
+end
+
+# Add all tracked elements to the added elements
+for element in parsedT do 
+  parsedA << element
+end
+
+# Add all untracked elements to the Added elements
+for element in parsedU do 
+  parsedA << ["added", element]
+end
+
+for element in parsedA do
+  file = element[1].split(' ')[0]
+  puts element[0] + " " + file
+  msg = gets.chomp
+  
+  # If msg is nil, skip
+  if (msg != "")
+    system "git add " + element[1] + " > /dev/null"
+    system "git commit -m \"" + file + ": " + msg + "\"" + " > /dev/null"
+  end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
