@@ -1,12 +1,34 @@
 #!/usr/bin/ruby
 
-#
-# git auto-committer with standard commit convention
-#
+require 'optparse'
 
 # Courtesy of:
 # https://stackoverflow.com/questions/535721/ruby-max-integer
 FIXNUM_MAX = (2**(0.size * 8 -2) -1)
+
+# Options parsing
+options = {:merge => "", :checkout => "", :quash => false}
+
+OptionParser.new do|opts|
+	opts.banner = "Usage: years.rb [options]"
+	
+	opts.on('-m', '--merge <branch>', 'Merge to branch') do |branch|
+		options[:merge] = branch || 'dev';
+	end
+
+	opts.on('-c', '--checkout <name>', 'Checkout to new branch') do |branch|
+		options[:checkout] = branch;
+	end
+	
+	opts.on('-s', '--squash', 'Squash all files into same commit') do
+		options[:squash] = true;
+	end
+
+	opts.on('-h', '--help', 'Displays Help') do
+		puts opts
+		exit
+	end
+end.parse!
 
 # Retrieve the modified files
 value = `git status`
@@ -49,7 +71,7 @@ for element in array do
   if (counter >= baseCounter)
     if (tracked)
       e = element.split(':')
-      if (e != [])
+      if (e != [] && e.length >= 2)
         if (!added)
           parsedT << e
         else
@@ -75,6 +97,8 @@ end
 for element in parsedU do 
   parsedA << ["added", element]
 end
+
+p parsedA
 
 for element in parsedA do
   file = element[1].split(' ')[0]
