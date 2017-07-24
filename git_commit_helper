@@ -1,0 +1,177 @@
+#!/usr/bin/ruby
+
+require 'optparse'
+
+# Courtesy of:
+# https://stackoverflow.com/questions/535721/ruby-max-integer
+FIXNUM_MAX = (2**(0.size * 8 -2) -1)
+
+# Options parsing
+options = {:merge => "", :checkout => "", :quash => false}
+
+OptionParser.new do|opts|
+	opts.banner = "Usage: git_commit_helper [options]"
+	
+	opts.on('-m', '--merge [<branch>]', 'Merge to branch') do |branch|
+		options[:merge] = branch || "dev";
+	end
+
+	opts.on('-c', '--checkout [<name>]', 'Checkout to new branch') do |branch|
+		options[:checkout] = branch;
+	end
+
+	opts.on('-h', '--help', 'Displays Help') do
+		puts opts
+		exit
+	end
+end.parse!
+
+# Add prompt for checkout branch name if not given as command line argument
+while (!options[:checkout]) do
+  puts "Insert checkout branch name"
+  options[:checkout] = gets.chomp
+  
+  if (options[:checkout] == "")
+    options[:checkout] = nil
+  end
+end
+
+# Retrieve the modified files
+value = `git status`
+
+# Magical format parsing
+array = value.split(/[\t\n]/)
+
+counter = 0
+baseCounter = FIXNUM_MAX
+tracked = true
+added = true
+
+# Tracked files
+parsedT ||= []
+
+# Added files
+parsedA ||= []
+
+# Untracked files
+parsedU ||= []
+
+# Return a list of tracked files and untracked files
+for element in array do
+  # Skip the initial extra fluff added by git
+  if (element == "Untracked files:")
+    tracked = false
+    baseCounter = counter + 2
+  end
+  
+  if (element == "Changes to be committed:")
+    baseCounter = counter + 2
+    added = true
+  end
+  
+  if (element == "Changes not staged for commit:")
+    baseCounter = counter + 3
+    added = false
+  end
+  
+  if (counter >= baseCounter)
+    if (tracked)
+      e = element.split(':')
+      if (e != [] && e.length >= 2)
+        if (!added)
+          parsedT << e
+        else
+          parsedA << e
+        end
+      end
+    else
+      e = element.split(' ')
+      if (e.length <= 2 && e[0] != nil)
+        parsedU << e[0]
+      end
+    end
+  end
+  counter += 1
+end
+
+# If checkout flag is selected, first checkout
+if (options[:checkout] != "")
+  system "git checkout -b " + options[:checkout] + " > /dev/null"
+end
+
+# Add all tracked elements to the added elements
+for element in parsedT do 
+  parsedA << element
+end
+
+# Add all untracked elements to the Added elements
+for element in parsedU do 
+  parsedA << ["added", element]
+end
+
+for element in parsedA do
+  file = element[1].split(' ')[0]
+  puts element[0] + " " + file
+  msg = gets.chomp
+  
+  # If msg is nil, skip
+  if (msg != "")
+    system "git add " + element[1] + " > /dev/null"
+    system "git commit -m \"" + file + ": " + msg + "\"" + " > /dev/null"
+  end
+end
+
+# If merge flag is selected, merge at the end of the procedure
+if (options[:merge] != "")
+
+  # Determine the current branch name
+  name = `git branch`
+  for element in name.split("\n") do
+    br = element.split("*")
+    if (br.length > 1)
+      branch = br[1].split(" ")[0]
+      break
+    end
+  end
+  
+  system "git checkout " + options[:merge] + " > /dev/null"
+  system "git merge " + branch + " --no-ff > /dev/null"
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
