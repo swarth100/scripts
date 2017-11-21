@@ -209,7 +209,7 @@ if (options[:push])
   extraCmd = ""
   
   # Accordingly with the flags, set upstream or not
-  if (options[:upstream] != "")
+  if (options[:upstream])
     extraCmd = "-u origin #{curBranch}"
   end
   
@@ -222,7 +222,7 @@ end
 if (options[:delete] != "")
   
   # Accordingly with the flags, set upstream or not
-  if (options[:upstream] != "")
+  if (options[:upstream])
     system "git push --delete origin #{options[:delete]}"
   else
     system "git branch -d #{options[:delete]}"
