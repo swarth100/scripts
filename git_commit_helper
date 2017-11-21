@@ -7,7 +7,7 @@ require 'optparse'
 FIXNUM_MAX = (2**(0.size * 8 -2) -1)
 
 # Options parsing
-options = {:merge => "", :checkout => "", :squash => false}
+options = {:merge => "", :checkout => "", :delete => "", :squash => false, :push => false, :upstream => false}
 
 OptionParser.new do|opts|
   opts.banner = "Usage: git_commit_helper [options]"
