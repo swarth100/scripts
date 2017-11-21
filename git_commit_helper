@@ -24,6 +24,14 @@ OptionParser.new do|opts|
     options[:squash] = true;
   end
 
+  opts.on('-p', '--push', 'Pushes the given changes') do
+    options[:push] = true;
+  end
+  
+  opts.on('-u', '--upstream', 'Sets the upstream branch to origin') do
+    options[:upstream] = true;
+  end
+
   opts.on('-h', '--help', 'Displays Help') do
     puts opts
     exit
@@ -179,8 +187,25 @@ if (options[:merge] != "")
     end
   end
   
-  system "git checkout " + options[:merge] + " > /dev/null"
-  system "git merge " + branch + " --no-ff > /dev/null"
+  system "git checkout " + options[:merge]
+  system "git merge " + branch + " --no-ff"
+end
+
+# If push flag is selected, push the given changes to remote
+if (options[:push] != "")
+
+  puts "Got here"
+
+  extraCmd = ""
+  
+  # Accordingly with the flags, set upstream or not
+  if (options[:upstream] != "")
+    curBranch = (`git branch | grep \\\*`).split("* ")[1]
+    extraCmd = "-u origin #{curBranch}"
+  end
+  
+  system "git push #{extraCmd}"
+  
 end
 
 
