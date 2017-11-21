@@ -224,9 +224,10 @@ if (options[:delete] != "")
   # Accordingly with the flags, set upstream or not
   if (options[:upstream])
     system "git push --delete origin #{options[:delete]}"
-  else
-    system "git branch -d #{options[:delete]}"
-  end  
+  end
+  
+  # Always remove locally
+  system "git branch -d #{options[:delete]}"
 end
 
 
