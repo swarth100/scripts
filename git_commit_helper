@@ -28,8 +28,12 @@ OptionParser.new do|opts|
     options[:push] = true;
   end
   
-  opts.on('-u', '--upstream', 'Sets the upstream branch to origin') do
+  opts.on('-u', '--upstream', 'Performs the selected action upstream. Works with push and delete.') do
     options[:upstream] = true;
+  end
+  
+  opts.on('-d', '--delete [<branch>]', 'Removes the given branch locally') do |branch|
+    options[:delete] = branch;
   end
 
   opts.on('-h', '--help', 'Displays Help') do
@@ -51,6 +55,9 @@ end
 # Retrieve the modified files
 value = `git status`
 
+# Retrieve the branch name
+curBranch = (`git branch | grep \\\*`).split("* ")[1]
+
 # Magical format parsing
 array = value.split(/[\t\n]/)
 
@@ -71,6 +78,11 @@ parsedU ||= []
 # Commit messages for all files
 comMexs ||= []
 comFiles ||= []
+
+# Set branch names
+if !options[:delete]
+  options[:delete] = curBranch
+end
 
 # Return a list of tracked files and untracked files
 for element in array do
@@ -194,18 +206,27 @@ end
 # If push flag is selected, push the given changes to remote
 if (options[:push] != "")
 
-  puts "Got here"
-
   extraCmd = ""
   
   # Accordingly with the flags, set upstream or not
   if (options[:upstream] != "")
-    curBranch = (`git branch | grep \\\*`).split("* ")[1]
     extraCmd = "-u origin #{curBranch}"
   end
   
   system "git push #{extraCmd}"
   
+end
+
+# If delete flag is selected, the given branch is removed.
+# NOTE: As you cannot remove a branch you're on.
+if (options[:delete] != "")
+  
+  # Accordingly with the flags, set upstream or not
+  if (options[:upstream] != "")
+    system "git push --delete origin #{options[:delete]}"
+  else
+    system "git branch -d #{options[:delete]}"
+  end  
 end
 
 
