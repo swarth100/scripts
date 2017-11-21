@@ -204,7 +204,7 @@ if (options[:merge] != "")
 end
 
 # If push flag is selected, push the given changes to remote
-if (options[:push] != "")
+if (options[:push])
 
   extraCmd = ""
   
