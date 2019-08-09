@@ -7,7 +7,7 @@ require 'optparse'
 FIXNUM_MAX = (2**(0.size * 8 -2) -1)
 
 # Options parsing
-options = {:merge => "", :checkout => "", :delete => "", :squash => false, :push => false, :upstream => false}
+options = {:merge => "", :checkout => "", :delete => "", :squash => false, :push => false, :upstream => false, :all => false}
 
 OptionParser.new do|opts|
   opts.banner = "Usage: git_commit_helper [options]"
@@ -34,6 +34,10 @@ OptionParser.new do|opts|
   
   opts.on('-d', '--delete [<branch>]', 'Removes the given branch locally') do |branch|
     options[:delete] = branch;
+  end
+
+  opts.on('-a', '--all', 'Adds all local changes') do
+    options[:all] = true;
   end
 
   opts.on('-h', '--help', 'Displays Help') do
@@ -156,6 +160,11 @@ for element in parsedA do
       comFiles << file
     end
   end
+end
+
+# Add all files when all flag is selected
+if (options[:all])
+  system "git add ."
 end
 
 #When squash iterate
