@@ -2,6 +2,9 @@
 
 require 'optparse'
 
+# Gracious exiting on Ctrl+C
+trap("SIGINT") { exit! }
+
 # Courtesy of:
 # https://stackoverflow.com/questions/535721/ruby-max-integer
 FIXNUM_MAX = (2**(0.size * 8 -2) -1)
@@ -85,6 +88,7 @@ comFiles ||= []
 
 # Files to be tracked for fully qualifying names
 nameFiles ||= []
+allAddFile ||= []
 
 # History of operations
 $commitHistory ||= []
@@ -109,11 +113,24 @@ def add_commit_file(f)
   $commitFileStash << f
 end
 
+def add_checkout_msg(b)
+  system "git checkout -b " + b + " > /dev/null"
+  $commitHistory << "\t-]> New Branch: " + b
+end
+
+def add_merge_msg(t, f)
+  system "git checkout " + t
+  system "git merge " + f + " --no-ff"
+  $commitHistory << "\t<[- Merge into: " + t
+end
+
 # Prints the gathered commit history
 def print_commit_history()
-  puts ""
-  puts "Execution Summary:"
-  puts $commitHistory
+  if $commitHistory.length > 0
+    puts ""
+    puts "Execution Summary:"
+    puts $commitHistory
+  end
 end
 
 # Return the longest path prefix (taken character-by-character) that is a prefix of all paths in array.
@@ -179,7 +196,7 @@ end
 
 # If checkout flag is selected, first checkout
 if (options[:checkout] != "")
-  system "git checkout -b " + options[:checkout] + " > /dev/null"
+  add_checkout_msg(options[:checkout])
 end
 
 # Add all tracked elements to the added elements
@@ -218,7 +235,8 @@ for element in parsedA do
   
       # Do not add specific file to all option
       if (msg != "-")
-        add_commit_file(file)      
+        add_commit_file(file)
+        allAddFile << file
       end
     elsif (msg != "")
       # If the message is nil, skip
@@ -235,13 +253,23 @@ end
 
 # Determine min qualifying pathname and prompt for message
 if (options[:all])
+  if nameFiles.length == 0
+    nameFiles = allAddFile
+  end
+
   minPathName = common_prefix(nameFiles)
-  puts "Add commit message for " + minPathName
-  msg = gets.chomp
-  execute_commit_message(minPathName, msg)
+  if (minPathName == "")
+    minPathName = "/"
+  end
+
+  if nameFiles.length > 0
+    puts "Add commit message for path " + minPathName
+    msg = gets.chomp
+    execute_commit_message(minPathName, msg)
+  end
 end
 
-#When squash iterate
+# Executes squashing operation iterating through files
 if (options[:squash])
   for file in comFiles do
     system "git add " + file + " > /dev/null"
@@ -282,8 +310,8 @@ if (options[:merge] != "")
     end
   end
   
-  system "git checkout " + options[:merge]
-  system "git merge " + branch + " --no-ff"
+  # Merge the branch specifying to and from branches
+  add_merge_msg(options[:merge], branch)
 end
 
 # If push flag is selected, push the given changes to remote
