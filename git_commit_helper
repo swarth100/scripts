@@ -83,6 +83,9 @@ parsedU ||= []
 comMexs ||= []
 comFiles ||= []
 
+# Files to be tracked for fully qualifying names
+nameFiles ||= []
+
 # Set branch names
 if !options[:delete]
   options[:delete] = curBranch
@@ -142,6 +145,14 @@ for element in parsedU do
   parsedA << ["added", element]
 end
 
+# Print additional help prompt when committing bulk
+if (options[:all])
+  puts "Remove files with '-', add to path matcher with 'p':"
+else
+  puts "Add commit message per file you wish to commit:"
+end
+
+# Run for each qualifying element of git status
 for element in parsedA do
   file = element[1].split(' ')[0]
   puts element[0] + " " + file
@@ -149,8 +160,19 @@ for element in parsedA do
   
   # If squash mode is off commit every message individually
   if (!options[:squash])
-    # If msg is nil, skip
-    if (msg != "")
+    # Add all files when all flag is selected
+    if (options[:all])
+      # Add given file to path matcher
+      if (msg == "p")
+        nameFiles << file
+      end
+  
+      # Do not add specific file to all option
+      if (msg != "-")
+        system "git add " + file + " > /dev/null"
+      end
+    elsif (msg != "")
+      # If the message is nil, skip
       system "git add " + file + " > /dev/null"
       system "git commit -m \"" + file + ": " + msg + "\"" + " > /dev/null"
     end
@@ -162,9 +184,26 @@ for element in parsedA do
   end
 end
 
-# Add all files when all flag is selected
+# Return the longest path prefix (taken character-by-character) that is a prefix of all paths in array.
+# If array is empty, return the empty string ('').
+# Note that this may return invalid paths because it works a character at a time.
+# source: https://gist.github.com/mamantoha/3898678
+def common_prefix(m)
+  # Given a array of pathnames, returns the longest common leading component
+  return '' if m.empty?
+  s1, s2 = m.min, m.max
+  s1.each_char.with_index do |c, i|
+    return s1[0...i] if c != s2[i]
+  end
+  return s1
+end
+
+# Determine min qualifying pathname and prompt for message
 if (options[:all])
-  system "git add ."
+  minPathName = common_prefix(nameFiles)
+  puts "Add commit message for " + minPathName
+  msg = gets.chomp
+  system "git commit -m \"" + minPathName + ": " + msg + "\"" + " > /dev/null"
 end
 
 #When squash iterate
