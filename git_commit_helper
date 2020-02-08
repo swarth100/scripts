@@ -10,7 +10,7 @@ trap("SIGINT") { exit! }
 FIXNUM_MAX = (2**(0.size * 8 -2) -1)
 
 # Options parsing
-options = {:merge => "", :checkout => "", :delete => "", :squash => false, :push => false, :upstream => false, :all => false}
+options = {:merge => "", :checkout => "", :delete => "", :squash => false, :push => false, :upstream => false, :all => false, :truncate => false}
 
 OptionParser.new do|opts|
   opts.banner = "Usage: git_commit_helper [options]"
@@ -41,6 +41,10 @@ OptionParser.new do|opts|
 
   opts.on('-a', '--all', 'Adds all local changes') do
     options[:all] = true;
+  end
+
+  opts.on('-t', '--truncate', 'Truncates filenames when too verbose') do
+    options[:truncate] = true;
   end
 
   opts.on('-h', '--help', 'Displays Help') do
@@ -98,7 +102,11 @@ $commitFileStash ||= []
 # Main Functions
 
 # Adds a new commit element and replays all stashed files
-def execute_commit_message(f, m)
+def execute_commit_message(options, f, m)
+  if options[:truncate]
+    # Optionally truncate the filename prefix
+    f = reduce_filename(f)
+  end
   system "git commit -m \"" + f + ": " + m + "\"" + " > /dev/null"
   $commitHistory << "\t--> New Commit: " + m
   for fileName in $commitFileStash do
@@ -145,6 +153,21 @@ def common_prefix(m)
     return s1[0...i] if c != s2[i]
   end
   return s1
+end
+
+# Parse the filepath returning the top level directory and the filename
+def reduce_filename(f)
+  fl = f.split('/')
+  if fl.length < 1
+    # If no slashes or just one slash were detected simply return the original filename
+    return f
+  else
+    
+    # # If more than one slashes were detected, crop the filename
+    # return fl[0] + "/{" + String(fl.length - 2) + "}/" + fl[fl.length - 1]
+    # If more than one slashes were detected, simple return the filename
+    return fl[fl.length - 1]
+  end
 end
 
 #############################################################################
@@ -241,7 +264,7 @@ for element in parsedA do
     elsif (msg != "")
       # If the message is nil, skip
       add_commit_file(file)
-      execute_commit_message(file, msg)
+      execute_commit_message(options, file, msg)
     end
   else
     if (msg != "")
@@ -263,9 +286,14 @@ if (options[:all])
   end
 
   if nameFiles.length > 0
-    puts "Add commit message for path " + minPathName
-    msg = gets.chomp
-    execute_commit_message(minPathName, msg)
+    msg = ""
+    while (msg == "") do
+      # Keep iterating prompting for a commit message in all mode.
+      # Prevents from accidentally bulk-committing with no commit name.
+      puts "Add commit message for path " + minPathName
+      msg = gets.chomp
+    end
+    execute_commit_message(options, minPathName, msg)
   end
 end
 
